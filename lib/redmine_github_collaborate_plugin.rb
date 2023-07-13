@@ -5,14 +5,20 @@ require 'json'
 module RedmineGithubCollaboratePlugin
   module GithubURLs
     def on_issue_url(userId,repoId,issueId)
-      puts "https://api.github.com/repos/#{userId}/#{repoId}/issues/#{issueId}"
       uri = URI("https://api.github.com/repos/#{userId}/#{repoId}/issues/#{issueId}")
-      response = Rails.cache.fetch(uri, expires_in: 1.days) do
+      response = Rails.cache.fetch(uri, expires_in: 10.seconds) do
         res = Net::HTTP.get_response(uri)
       end
-
+      
       if response.is_a?(Net::HTTPSuccess)
-        return %(<a href="#{uri}">#{JSON.parse(response.body)["state"]}</a>)
+        issue = JSON.parse(response.body)
+
+        is_open = issue["state"] == "open"
+        image_file = is_open ? "issue-opened.svg" : "issue-closed.svg"
+        image_url = "#{::Redmine::Utils.relative_url_root}/plugin_assets/redmine_github_collaborate/images/#{image_file}"
+        image_tag = "<img src='#{image_url}' alt='#{is_open ? "opened" : "closed"}' style='width: 16px;' />"
+
+        return %(<a href="#{uri}">#{image_tag}#{issue["title"]} ##{issue["number"]}</a>)
       elsif response.is_a?(Net::HTTPNotFound)
         return %(<div style="color: red;">Not found #{uri} you probably don't have permission.</div>)
       else
