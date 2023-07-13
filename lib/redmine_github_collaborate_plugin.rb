@@ -20,7 +20,7 @@ module RedmineGithubCollaboratePlugin
         image_url = "#{::Redmine::Utils.relative_url_root}/plugin_assets/redmine_github_collaborate/images/#{image_file}"
         image_tag = "<img src='#{image_url}' alt='#{is_open ? "opened" : "closed"}' style='width: 16px;' />"
 
-        return %(<a href="#{url_str}">#{image_tag}#{issue["title"]} ##{issue["number"]}</a>)
+        return %(<a href="#{issue["html_url"]}">#{image_tag}#{issue["title"]} ##{issue["number"]}</a>)
       elsif response.is_a?(Net::HTTPNotFound)
         return %(<div style="color: red;">Not found #{uri} you probably don't have permission.</div>)
       else
