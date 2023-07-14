@@ -4,7 +4,7 @@ require 'json'
 
 module RedmineGithubCollaboratePlugin
   module GithubURLs
-    def on_issue_url(userId,repoId,issueId,original_url)
+    def on_issue_url(userId, repoId, issueId, original_url)
       url_str = "https://api.github.com/repos/#{userId}/#{repoId}/issues/#{issueId}"
 
       Rails.cache.clear
@@ -15,37 +15,33 @@ module RedmineGithubCollaboratePlugin
       if response.is_a?(Net::HTTPSuccess)
         issue = JSON.parse(response.body)
 
-        is_open = issue["state"] == "open"
-        image_file = is_open ? "issue-opened.svg" : "issue-closed.svg"
+        is_open = issue['state'] == 'open'
+        image_file = is_open ? 'issue-opened.svg' : 'issue-closed.svg'
         image_url = "#{::Redmine::Utils.relative_url_root}/plugin_assets/redmine_github_collaborate/images/#{image_file}"
-        image_tag = "<img src='#{image_url}' alt='#{is_open ? "opened" : "closed"}' style='width: 16px;' />"
+        image_tag = "<img src='#{image_url}' alt='#{is_open ? 'opened' : 'closed'}' style='width: 16px;' />"
 
-        return %(<a href="#{issue["html_url"]}">#{image_tag}#{issue["title"]} ##{issue["number"]}</a>)
+        %(<a href="#{issue['html_url']}">#{image_tag}#{issue['title']} ##{issue['number']}</a>)
       elsif response.is_a?(Net::HTTPNotFound)
-        return %(<div style="color: red;">Not found #{original_url} you probably don't have permission.</div>)
+        %(<div style="color: red;">Not found #{original_url} you probably don't have permission.</div>)
       else
         raise
       end
     end
 
     def on_github_url(url)
-      parts = url.split("/")
-      begin
-        if parts.length > 6 then
-          case parts[5]
-          when "issues"
-            tag = on_issue_url(parts[3], parts[4], parts[6], url)
-            puts tag
-            return tag
-          end
+      parts = url.split('/')
+      if parts.length > 6
+        case parts[5]
+        when 'issues'
+          on_issue_url(parts[3], parts[4], parts[6], url)
         end
-      rescue => e
       end
-      return url
+    rescue StandardError => _e
+      url
     end
 
     def to_html(*args)
-      @text = @text.gsub(/https\:\/\/github\.com\/[^\s\n]*/){ |match| on_github_url(match) }
+      @text = @text.gsub(%r{https://github\.com/[^\s\n]*}) { |match| on_github_url(match) }
       super(*args)
     end
   end
