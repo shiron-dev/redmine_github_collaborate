@@ -4,14 +4,14 @@ require 'json'
 
 module RedmineGithubCollaboratePlugin
   module GithubURLs
-    def on_issue_url(userId,repoId,issueId)
+    def on_issue_url(userId,repoId,issueId,original_url)
       url_str = "https://api.github.com/repos/#{userId}/#{repoId}/issues/#{issueId}"
 
       Rails.cache.clear
       response = Rails.cache.fetch(url_str, expires_in: 1.days) do
         Net::HTTP.get_response(URI(url_str))
       end
-      
+
       if response.is_a?(Net::HTTPSuccess)
         issue = JSON.parse(response.body)
 
@@ -22,7 +22,7 @@ module RedmineGithubCollaboratePlugin
 
         return %(<a href="#{issue["html_url"]}">#{image_tag}#{issue["title"]} ##{issue["number"]}</a>)
       elsif response.is_a?(Net::HTTPNotFound)
-        return %(<div style="color: red;">Not found #{uri} you probably don't have permission.</div>)
+        return %(<div style="color: red;">Not found #{original_url} you probably don't have permission.</div>)
       else
         raise
       end
@@ -34,7 +34,9 @@ module RedmineGithubCollaboratePlugin
         if parts.length > 6 then
           case parts[5]
           when "issues"
-            return on_issue_url(parts[3],parts[4],parts[6])
+            tag = on_issue_url(parts[3], parts[4], parts[6], url)
+            puts tag
+            return tag
           end
         end
       rescue => e
